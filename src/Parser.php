@@ -51,6 +51,11 @@ class Parser extends Component
      */
     public $useAdditionalTagToAnchorTo;
 
+    /**
+     * @var array Tracks generated IDs to ensure uniqueness.
+     */
+    private array $generatedIds = [];
+
     // Public Methods
     // =========================================================================
 
@@ -69,6 +74,8 @@ class Parser extends Component
             $tags = StringHelper::split($tags);
         }
 
+        $this->generatedIds = [];
+
         return preg_replace_callback('/<(' . implode('|', $tags) . ')([^>]*)>\s*([\w\W]+?)\s*<\/\1>/', function(array $match) use ($language, $lowercase) {
             $headingHasId = false;
             // try to get id from the heading tag only if we're not supposed to use additional tag to anchor to
@@ -76,6 +83,7 @@ class Parser extends Component
                 $anchorName = $this->getIdFromHeading($match[2]);
                 if (!empty($anchorName)) {
                     $headingHasId = true;
+                    $this->generatedIds[$anchorName] = true;
                 }
             }
 
@@ -84,7 +92,7 @@ class Parser extends Component
                 $anchorName = $this->generateAnchorName($match[3], $language, $lowercase);
             }
 
-            $heading = preg_replace('/\s+/', ' ', strip_tags(str_replace(['&nbsp;', ' '], ' ', $match[3])));
+            $heading = preg_replace('/\s+/', ' ', strip_tags(str_replace(['&nbsp;', ' '], ' ', $match[3])));
             $link = Html::tag('a', $this->anchorLinkText, [
                 'class' => $this->anchorLinkClass,
                 'title' => Craft::t('anchors', $this->anchorLinkTitleText, ['heading' => $heading]),
@@ -149,7 +157,28 @@ class Parser extends Component
         }
 
         // Put them together as the anchor name
-        return StringHelper::toAscii(implode('-', $words), $language);
+        $name = StringHelper::toAscii(implode('-', $words), $language);
+
+        // Ensure uniqueness of anchor name by appending a number if necessary
+        $uniqueName = $this->getUniqueAnchorName($name, $this->generatedIds);
+        $this->generatedIds[$uniqueName] = true;
+
+        return $uniqueName;
+    }
+
+    private function getUniqueAnchorName(string $name, array $idGenerated): string
+    {
+        if (!isset($idGenerated[$name])) {
+            return $name;
+        }
+
+        // Index starts at 2 because the first duplicate would be "name-2", similar to how duplicate slugs are handled in Craft.
+        $i = 2;
+        while (isset($idGenerated["$name-$i"])) {
+            $i++;
+        }
+
+        return "$name-$i";
     }
 
     /**
