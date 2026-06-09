@@ -92,7 +92,7 @@ class Parser extends Component
                 $anchorName = $this->generateAnchorName($match[3], $language, $lowercase);
             }
 
-            $heading = preg_replace('/\s+/', ' ', strip_tags(str_replace(['&nbsp;', ' '], ' ', $match[3])));
+            $heading = preg_replace('/\s+/', ' ', strip_tags(str_replace(['&nbsp;', ' '], ' ', $match[3])));
             $link = Html::tag('a', $this->anchorLinkText, [
                 'class' => $this->anchorLinkClass,
                 'title' => Craft::t('anchors', $this->anchorLinkTitleText, ['heading' => $heading]),
@@ -157,24 +157,24 @@ class Parser extends Component
         }
 
         // Put them together as the anchor name
-        $name = StringHelper::toAscii(implode('-', $words), $language);
+        $anchorName = StringHelper::toAscii(implode('-', $words), $language);
 
         // Ensure uniqueness of anchor name by appending a number if necessary
-        $uniqueName = $this->getUniqueAnchorName($name, $this->generatedIds);
+        $uniqueName = $this->getUniqueAnchorName($anchorName);
         $this->generatedIds[$uniqueName] = true;
 
         return $uniqueName;
     }
 
-    private function getUniqueAnchorName(string $name, array $idGenerated): string
+    private function getUniqueAnchorName(string $name): string
     {
-        if (!isset($idGenerated[$name])) {
+        if (!isset($this->generatedIds[$name])) {
             return $name;
         }
 
         // Index starts at 2 because the first duplicate would be "name-2", similar to how duplicate slugs are handled in Craft.
         $i = 2;
-        while (isset($idGenerated["$name-$i"])) {
+        while (isset($this->generatedIds["$name-$i"])) {
             $i++;
         }
 
