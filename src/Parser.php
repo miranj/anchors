@@ -166,19 +166,19 @@ class Parser extends Component
         return $uniqueName;
     }
 
-    private function getUniqueAnchorName(string $name): string
+    private function getUniqueAnchorName(string $anchorName): string
     {
-        if (!isset($this->generatedIds[$name])) {
-            return $name;
+        if (!isset($this->generatedIds[$anchorName])) {
+            return $anchorName;
         }
 
         // Index starts at 2 because the first duplicate would be "name-2", similar to how duplicate slugs are handled in Craft.
         $i = 2;
-        while (isset($this->generatedIds["$name-$i"])) {
+        while (isset($this->generatedIds["$anchorName-$i"])) {
             $i++;
         }
 
-        return "$name-$i";
+        return "$anchorName-$i";
     }
 
     /**
