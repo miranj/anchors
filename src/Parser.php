@@ -51,6 +51,11 @@ class Parser extends Component
      */
     public $useAdditionalTagToAnchorTo;
 
+    /**
+     * @var array Tracks generated IDs to ensure uniqueness.
+     */
+    private array $generatedIds = [];
+
     // Public Methods
     // =========================================================================
 
@@ -69,6 +74,8 @@ class Parser extends Component
             $tags = StringHelper::split($tags);
         }
 
+        $this->generatedIds = [];
+
         return preg_replace_callback('/<(' . implode('|', $tags) . ')([^>]*)>\s*([\w\W]+?)\s*<\/\1>/', function(array $match) use ($language, $lowercase) {
             $headingHasId = false;
             // try to get id from the heading tag only if we're not supposed to use additional tag to anchor to
@@ -76,6 +83,7 @@ class Parser extends Component
                 $anchorName = $this->getIdFromHeading($match[2]);
                 if (!empty($anchorName)) {
                     $headingHasId = true;
+                    $this->generatedIds[$anchorName] = true;
                 }
             }
 
@@ -149,7 +157,28 @@ class Parser extends Component
         }
 
         // Put them together as the anchor name
-        return StringHelper::toAscii(implode('-', $words), $language);
+        $anchorName = StringHelper::toAscii(implode('-', $words), $language);
+
+        // Ensure uniqueness of anchor name by appending a number if necessary
+        $uniqueName = $this->getUniqueAnchorName($anchorName);
+        $this->generatedIds[$uniqueName] = true;
+
+        return $uniqueName;
+    }
+
+    private function getUniqueAnchorName(string $anchorName): string
+    {
+        if (!isset($this->generatedIds[$anchorName])) {
+            return $anchorName;
+        }
+
+        // Index starts at 2 because the first duplicate would be "name-2", similar to how duplicate slugs are handled in Craft.
+        $i = 2;
+        while (isset($this->generatedIds["$anchorName-$i"])) {
+            $i++;
+        }
+
+        return "$anchorName-$i";
     }
 
     /**
